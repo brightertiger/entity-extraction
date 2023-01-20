@@ -1,8 +1,0 @@
-data:
-  path: ./data/
-  wandb: entity-extraction
-  model: model.pt
-params:
-  device: cuda:0
-  hfmodel: roberta-base
-  bsize: 12
