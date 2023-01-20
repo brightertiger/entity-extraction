@@ -2,7 +2,7 @@
 
 ### Overview
 
-This repository contains code for Named-Entity-Extraction (NER) using finetuned RoBERTa models. The dataset has been borrowed from [Kaggle](https://www.kaggle.com/datasets/namanj27/ner-dataset). Below is the header of how the input dataset looks.
+This repository contains code for Named-Entity-Extraction (NER) using finetuned RoBERTa models. The dataset has been borrowed from [Kaggle](https://www.kaggle.com/datasets/namanj27/ner-dataset). Below is the header of how the input dataset looks. The objective of this exercise is to correctly predict the "Tag" field using transformer based models.
 
 |Sentence # |Word         |POS|Tag  |
 |-----------|-------------|---|-----|
@@ -23,10 +23,10 @@ This repository contains code for Named-Entity-Extraction (NER) using finetuned 
 │   ├── train.csv                   # Training split from data.csv
 │   └── valid.csv                   # Validation split from data.csv
 │   ├── mapping.json                # Mapping of labels to index
-│   ├── score.csv                   # Model scores on valid.csv
+│   ├── score.csv                   # Model predictions on valid.csv
 │   ├── model                       # Finetuned Model
 │   │   └── model.pt-v1.ckpt
-│   ├── report.txt                  # Evaluation Report on valid.csv
+│   ├── report.txt                  # Evaluation on valid.csv
 
 ├── source                      # SOURCE CODE
 │   ├── data.py                     # Data Loaders
@@ -35,7 +35,7 @@ This repository contains code for Named-Entity-Extraction (NER) using finetuned 
 │   └── train.py                    # Training Model
 
 ├── main.py                     
-├── conf.yaml                   # CONFIG FILE
+├── conf.yaml                   
 
 ```
 
