@@ -1,0 +1,19 @@
+{
+    "O": 0,
+    "I-tim": 1,
+    "I-per": 2,
+    "I-org": 3,
+    "I-nat": 4,
+    "I-gpe": 5,
+    "I-geo": 6,
+    "I-eve": 7,
+    "I-art": 8,
+    "B-tim": 9,
+    "B-per": 10,
+    "B-org": 11,
+    "B-nat": 12,
+    "B-gpe": 13,
+    "B-geo": 14,
+    "B-eve": 15,
+    "B-art": 16
+}

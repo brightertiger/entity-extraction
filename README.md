@@ -1,1 +1,1 @@
-# entity-extraction
+# entity-recognition
