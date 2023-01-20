@@ -35,7 +35,7 @@ This repository contains code for Named-Entity-Extraction (NER) using finetuned 
 │   └── train.py                    # Training Model
 
 ├── main.py                     
-├── conf.yaml                   # CONFIG File
+├── conf.yaml                   # CONFIG FILE
 
 ```
 
