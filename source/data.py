@@ -98,7 +98,7 @@ class DataModule(pl.LightningDataModule):
         self.valid_data = pd.read_csv(valid_data)
         self.train_data['word'] = self.train_data['word'].fillna("none")
         self.valid_data['word'] = self.valid_data['word'].fillna("none")
-        self.mapping = json.load(open(mapping))
+        self.mapping = mapping
         self.tokenizer = tokenizer
         self.bsize = bsize
         return None

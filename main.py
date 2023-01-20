@@ -1,8 +1,8 @@
 import sys
 sys.path.append('..')
-
 import json
 import wandb
+import argparse
 import torch
 import torch.nn as nn
 import pandas as pd
@@ -18,12 +18,17 @@ from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.loggers import CSVLogger, WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint 
+from omegaconf import OmegaConf
 
-mode = 'train-model'
+CONFIG = OmegaConf.load('./conf.yaml')
+parser = argparse.ArgumentParser()
+choices = ['prepare-data', 'train-model', 'score-model']
+parser.add_argument('-m', '--mode', dest='mode', choices=choices, help="Run Mode")
+args = parser.parse_args()
 
-if mode == 'prepare-data':
+if args.mode == 'prepare-data':
     
-    path = './data/'
+    path = CONFIG['data']['path']
     
     data = pd.read_csv(path + '/data.csv', encoding_errors='ignore')
     data = data[['Sentence #','Word','Tag']]
@@ -46,25 +51,25 @@ if mode == 'prepare-data':
     with open(path + '/mapping.json', "w") as outfile:
         json.dump(mapping, outfile, indent=4)
 
-
-if mode == 'train-model':
+if args.mode == 'train-model':
     
-    bsize = 12
-    path = './data/'
-    hfmodel = 'roberta-base'
-    wandb = 'entity-extraction'
-    device = 'cuda:0'
+    path = CONFIG['data']['path']
+    wandb = CONFIG['data']['wandb']
+    hfmodel = CONFIG['params']['hfmodel']
+    device = CONFIG['params']['device']
+    bsize = CONFIG['params']['bsize']
+    learning_rate = CONFIG['params']['learning_rate']
+    epochs = CONFIG['params']['epochs']
     
     tokenizer = AutoTokenizer.from_pretrained(hfmodel)
     mapping = json.load(open('./data/mapping.json'))
 
     train_data = path + '/train.csv'
     valid_data = path + '/valid.csv'
-    mapping = path + '/mapping.json'
     data = DataModule(train_data, valid_data, mapping, tokenizer, bsize)
 
     model = Model(hfmodel, len(mapping))
-    model = LightModel(model, len(mapping), nn.CrossEntropyLoss(reduction='mean'), 16, 5, 1e-5)
+    model = LightModel(model, len(mapping), nn.CrossEntropyLoss(reduction='mean'), bsize, epochs, learning_rate)
 
     callbacks = []
     callbacks += [LearningRateMonitor(logging_interval="step")]
@@ -72,18 +77,18 @@ if mode == 'train-model':
 
     trainer = {}
     trainer['accelerator'] = 'gpu' if 'cuda' in device else 'cpu'
-    trainer['max_epochs'] = 2
+    trainer['max_epochs'] = learning_rate
     trainer['logger'] = WandbLogger(project=wandb)
     trainer['callbacks'] = callbacks
     trainer = pl.Trainer(**trainer)
     trainer.fit(model, data)
 
-if mode == 'score-model':
+if args.mode == 'score-model':
 
-    path = './data/'
-    hfmodel = 'roberta-base'
-    device = 'cuda:0'
-    bsize = 12
+    path = CONFIG['data']['path']
+    hfmodel = CONFIG['params']['hfmodel']
+    device = CONFIG['params']['device']
+    bsize = CONFIG['params']['bsize']
 
     mapping = json.load(open(path + '/mapping.json'))
     tokenizer = AutoTokenizer.from_pretrained(hfmodel)
@@ -105,5 +110,3 @@ if mode == 'score-model':
     with open(path + '/report.txt','w') as file:
         file.write(report)
     file.close()
-
-    

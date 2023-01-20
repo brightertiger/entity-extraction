@@ -1,0 +1,9 @@
+data:
+  path: ./data/
+  wandb: entity-extraction
+params:
+  device: cuda:0
+  hfmodel: roberta-base
+  bsize: 12
+  learning_rate: 1.0e-05
+  epochs: 2
