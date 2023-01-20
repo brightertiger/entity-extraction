@@ -1,5 +1,4 @@
 import sys
-sys.path.append('..')
 import json
 import wandb
 import argparse
@@ -57,10 +56,9 @@ if args.mode == 'train-model':
     wandb = CONFIG['data']['wandb']
     hfmodel = CONFIG['params']['hfmodel']
     device = CONFIG['params']['device']
-    bsize = CONFIG['params']['bsize']
-    learning_rate = CONFIG['params']['learning_rate']
-    epochs = CONFIG['params']['epochs']
-    
+    bsize = int(CONFIG['params']['bsize'])
+    learning_rate = float(CONFIG['params']['learning_rate'])
+    epochs = int(CONFIG['params']['epochs'])
     tokenizer = AutoTokenizer.from_pretrained(hfmodel)
     mapping = json.load(open('./data/mapping.json'))
 
@@ -73,11 +71,11 @@ if args.mode == 'train-model':
 
     callbacks = []
     callbacks += [LearningRateMonitor(logging_interval="step")]
-    callbacks += [ModelCheckpoint(dirpath=path+'/model', filename='model.pt', save_weights_only=True)]
+    callbacks += [ModelCheckpoint(dirpath=path+'/model', filename='model.pt-v1.ckpt', save_weights_only=True)]
 
     trainer = {}
     trainer['accelerator'] = 'gpu' if 'cuda' in device else 'cpu'
-    trainer['max_epochs'] = learning_rate
+    trainer['max_epochs'] = epochs
     trainer['logger'] = WandbLogger(project=wandb)
     trainer['callbacks'] = callbacks
     trainer = pl.Trainer(**trainer)
@@ -94,7 +92,9 @@ if args.mode == 'score-model':
     tokenizer = AutoTokenizer.from_pretrained(hfmodel)
 
     model = Model(hfmodel, len(mapping))
-    weights = torch.load(path + 'model.pt', map_location='cpu')['model_state_dict']
+    weights = torch.load(path + 'model/' + CONFIG['score']['model'], map_location='cpu')['state_dict']
+    weights = {key.replace('model.model.','model.'): val for key, val in weights.items()}
+    weights = {key.replace('model.head.','head.'): val for key, val in weights.items()}
     model.load_state_dict(weights)
     model = model.to(device)
     model.eval()
