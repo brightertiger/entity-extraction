@@ -3,638 +3,613 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Entity Extraction - NER with RoBERTa</title>
-    <meta name="description" content="Named-Entity Recognition with Fine-tuned RoBERTa Models by brightertiger">
-    <meta name="author" content="brightertiger">
-    <!-- GitHub Pages specific metadata -->
-    <meta name="github-repo" content="entity-extraction">
+    <title>Entity Extraction</title>
+    <meta name="description" content="Named Entity Recognition with Fine-tuned RoBERTa">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
-        /* Base styles */
         :root {
-            --primary-color: #3498db;
-            --secondary-color: #2c3e50;
-            --accent-color: #e74c3c;
-            --bg-color: #f9f9f9;
-            --text-color: #333;
-            --code-bg: #f5f5f5;
-            --border-color: #ddd;
-            --table-alt-bg: #f5f7fa;
+            --bg: #0a0a0b;
+            --surface: #141416;
+            --surface-2: #1c1c1f;
+            --border: #2a2a2e;
+            --text: #e4e4e7;
+            --text-muted: #71717a;
+            --accent: #818cf8;
+            --accent-dim: #6366f1;
+            --success: #34d399;
+            --warning: #fbbf24;
         }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            line-height: 1.6;
-            color: var(--text-color);
-            background-color: var(--bg-color);
+
+        * {
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
         }
-        
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            font-weight: 300;
+        }
+
         .container {
-            max-width: 1100px;
+            max-width: 900px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 0 24px;
         }
-        
+
         header {
-            background-color: var(--secondary-color);
-            color: white;
-            padding: 30px 0;
-            margin-bottom: 30px;
+            padding: 120px 0 80px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
         }
-        
-        header .container {
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(129, 140, 248, 0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .logo {
+            font-size: 0.75rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 24px;
+            font-weight: 500;
+        }
+
+        h1 {
+            font-size: clamp(2.5rem, 6vw, 3.5rem);
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            margin-bottom: 16px;
+        }
+
+        .subtitle {
+            font-size: 1.125rem;
+            color: var(--text-muted);
+            max-width: 500px;
+            margin: 0 auto 32px;
+        }
+
+        .cta-group {
             display: flex;
-            flex-direction: column;
-            align-items: center;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
         }
-        
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: var(--bg);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-dim);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: var(--surface-2);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
         nav {
-            background-color: var(--primary-color);
             position: sticky;
             top: 0;
+            background: rgba(10, 10, 11, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
             z-index: 100;
+            padding: 16px 0;
         }
-        
+
         nav ul {
             list-style: none;
-            padding: 0;
-            margin: 0;
             display: flex;
-            flex-wrap: wrap;
             justify-content: center;
+            gap: 32px;
         }
-        
-        nav li {
-            margin: 0;
-            padding: 0;
-        }
-        
+
         nav a {
-            display: block;
-            color: white;
+            color: var(--text-muted);
             text-decoration: none;
-            padding: 12px 20px;
-            transition: background-color 0.2s;
+            font-size: 0.875rem;
+            font-weight: 400;
+            transition: color 0.2s;
         }
-        
+
         nav a:hover {
-            background-color: rgba(255, 255, 255, 0.2);
+            color: var(--text);
         }
-        
-        /* Typography */
-        h1 {
-            font-size: 2.8rem;
-            margin: 0 0 10px 0;
-            text-align: center;
+
+        main {
+            padding: 80px 0;
         }
-        
+
+        section {
+            margin-bottom: 100px;
+        }
+
         h2 {
-            font-size: 2rem;
-            margin-top: 40px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid var(--primary-color);
-            color: var(--secondary-color);
+            font-size: 1.75rem;
+            font-weight: 500;
+            margin-bottom: 32px;
+            letter-spacing: -0.01em;
         }
-        
+
         h3 {
-            font-size: 1.5rem;
-            margin-top: 30px;
-            color: var(--secondary-color);
+            font-size: 1.125rem;
+            font-weight: 500;
+            margin: 40px 0 16px;
+            color: var(--text);
         }
-        
-        h4 {
-            font-size: 1.2rem;
-            margin-top: 25px;
-            color: var(--secondary-color);
-        }
-        
+
         p {
-            margin: 15px 0;
+            color: var(--text-muted);
+            margin-bottom: 16px;
         }
-        
+
         a {
-            color: var(--primary-color);
+            color: var(--accent);
             text-decoration: none;
         }
-        
+
         a:hover {
             text-decoration: underline;
         }
-        
-        /* Lists */
-        ul, ol {
-            padding-left: 25px;
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 16px;
         }
-        
-        li {
-            margin-bottom: 8px;
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin: 24px 0;
         }
-        
-        /* Code */
-        pre, code {
-            font-family: 'Fira Mono', 'Courier New', Courier, monospace;
-            background-color: var(--code-bg);
+
+        .stat {
+            text-align: center;
+            padding: 24px;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: var(--accent);
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            background: var(--surface-2);
+            padding: 2px 8px;
             border-radius: 4px;
         }
-        
-        code {
-            padding: 2px 5px;
-            font-size: 0.9rem;
-        }
-        
+
         pre {
-            padding: 15px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px 24px;
             overflow-x: auto;
-            border: 1px solid var(--border-color);
-            margin: 20px 0;
+            margin: 16px 0;
+            line-height: 1.8;
         }
-        
-        pre code {
-            padding: 0;
-            background-color: transparent;
+
+        .terminal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin: 16px 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            color: var(--success);
         }
-        
-        /* Tables */
+
+        .terminal::before {
+            content: '$ ';
+            color: var(--text-muted);
+        }
+
         table {
-            border-collapse: collapse;
             width: 100%;
-            margin: 20px 0;
-            overflow-x: auto;
-            display: block;
+            border-collapse: collapse;
+            margin: 24px 0;
+            font-size: 0.875rem;
         }
-        
+
         th, td {
-            border: 1px solid var(--border-color);
-            padding: 10px;
+            padding: 12px 16px;
             text-align: left;
+            border-bottom: 1px solid var(--border);
         }
-        
+
         th {
-            background-color: var(--primary-color);
-            color: white;
+            color: var(--text-muted);
+            font-weight: 500;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
-        
-        tr:nth-child(even) {
-            background-color: var(--table-alt-bg);
+
+        td {
+            color: var(--text);
         }
-        
-        /* Images */
+
+        tr:hover td {
+            background: var(--surface);
+        }
+
+        .highlight {
+            color: var(--success);
+            font-weight: 500;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 4px 10px;
+            background: var(--surface-2);
+            border-radius: 4px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin: 2px;
+        }
+
+        .tag-accent {
+            background: rgba(129, 140, 248, 0.15);
+            color: var(--accent);
+        }
+
+        ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        ul li {
+            position: relative;
+            padding-left: 20px;
+            margin-bottom: 8px;
+            color: var(--text-muted);
+        }
+
+        ul li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+        }
+
+        .structure-tree {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            line-height: 1.8;
+            color: var(--text-muted);
+        }
+
+        .structure-tree .folder {
+            color: var(--accent);
+        }
+
+        .structure-tree .file {
+            color: var(--text);
+        }
+
+        .structure-tree .comment {
+            color: var(--text-muted);
+            opacity: 0.6;
+        }
+
         img {
             max-width: 100%;
-            height: auto;
-            display: block;
-            margin: 20px auto;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            margin: 24px 0;
         }
-        
-        /* Specific Components */
-        .highlight {
-            background-color: #ffeaa7;
-            padding: 2px;
-            border-radius: 3px;
-        }
-        
-        .terminal {
-            background-color: #2c3e50;
-            color: #ecf0f1;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 20px 0;
-            font-family: 'Fira Mono', monospace;
-        }
-        
-        /* Helpers */
-        .text-center {
+
+        footer {
             text-align: center;
+            padding: 60px 0;
+            border-top: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.875rem;
         }
-        
-        .mt-5 {
-            margin-top: 50px;
+
+        .entity-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 16px 0;
         }
-        
-        .mb-5 {
-            margin-bottom: 50px;
-        }
-        
-        /* Responsive */
-        @media (max-width: 768px) {
+
+        @media (max-width: 640px) {
+            header {
+                padding: 80px 0 60px;
+            }
+
             nav ul {
-                flex-direction: column;
+                gap: 16px;
+                flex-wrap: wrap;
+                justify-content: center;
             }
-            
-            nav a {
-                padding: 10px;
-                text-align: center;
+
+            section {
+                margin-bottom: 60px;
             }
-            
-            h1 {
-                font-size: 2.2rem;
+
+            .grid {
+                grid-template-columns: 1fr;
             }
-            
-            h2 {
-                font-size: 1.8rem;
-            }
-            
-            .container {
-                padding: 15px;
-            }
-        }
-        
-        /* GitHub link */
-        .github-link {
-            display: inline-block;
-            margin-top: 10px;
-            padding: 8px 16px;
-            background-color: var(--secondary-color);
-            color: white;
-            border-radius: 4px;
-            text-decoration: none;
-            transition: background-color 0.2s;
-        }
-        
-        .github-link:hover {
-            background-color: #1a252f;
-            text-decoration: none;
         }
     </style>
 </head>
 <body>
     <header>
         <div class="container">
+            <div class="logo">NER • PyTorch Lightning</div>
             <h1>Entity Extraction</h1>
-            <p>Named-Entity Recognition with Fine-tuned RoBERTa Models</p>
-            <a href="https://github.com/brightertiger/entity-extraction" class="github-link" target="_blank">View on GitHub</a>
+            <p class="subtitle">Named Entity Recognition using fine-tuned RoBERTa models with PyTorch Lightning</p>
+            <div class="cta-group">
+                <a href="https://github.com/brightertiger/entity-extraction" class="btn btn-primary" target="_blank">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                    View on GitHub
+                </a>
+                <a href="#quickstart" class="btn btn-secondary">Get Started</a>
+            </div>
         </div>
     </header>
 
     <nav>
         <ul>
-            <li><a href="#overview">Overview</a></li>
+            <li><a href="#quickstart">Quick Start</a></li>
             <li><a href="#dataset">Dataset</a></li>
-            <li><a href="#ml-approach">ML Approach</a></li>
-            <li><a href="#code-structure">Code Structure</a></li>
-            <li><a href="#instructions">Instructions</a></li>
+            <li><a href="#architecture">Architecture</a></li>
+            <li><a href="#structure">Structure</a></li>
             <li><a href="#performance">Performance</a></li>
         </ul>
     </nav>
 
-    <div class="container">
-        <section id="overview">
-            <h2>Overview</h2>
-            <p>This repository contains code for Named-Entity Recognition (NER) using finetuned RoBERTa models. The dataset has been borrowed from <a href="https://www.kaggle.com/datasets/namanj27/ner-dataset" target="_blank">Kaggle</a>. The objective is to accurately predict entity tags for words in sentences, distinguishing between different entity types such as people (per), organizations (org), locations (geo), and more.</p>
-        </section>
+    <main>
+        <div class="container">
+            <section id="quickstart">
+                <h2>Quick Start</h2>
+                <p>Get up and running in minutes. Download the dataset from <a href="https://www.kaggle.com/datasets/namanj27/ner-dataset" target="_blank">Kaggle</a> and place it in the <code>data/</code> folder.</p>
+                
+                <h3>Installation</h3>
+                <div class="terminal">pip install -r requirements.txt</div>
+                
+                <h3>Prepare Data</h3>
+                <div class="terminal">python main.py --mode prepare-data</div>
+                
+                <h3>Train Model</h3>
+                <div class="terminal">python main.py --mode train-model</div>
+                
+                <h3>Evaluate Model</h3>
+                <div class="terminal">python main.py --mode score-model</div>
+            </section>
 
-        <section id="dataset">
-            <h2>Dataset Structure</h2>
-            <p>The input dataset has the following structure:</p>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Sentence #</th>
-                        <th>Word</th>
-                        <th>POS</th>
-                        <th>Tag</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>Sentence: 1</td>
-                        <td>Thousands</td>
-                        <td>NNS</td>
-                        <td>O</td>
-                    </tr>
-                    <tr>
-                        <td></td>
-                        <td>of</td>
-                        <td>IN</td>
-                        <td>O</td>
-                    </tr>
-                    <tr>
-                        <td></td>
-                        <td>demonstrators</td>
-                        <td>NNS</td>
-                        <td>O</td>
-                    </tr>
-                    <tr>
-                        <td></td>
-                        <td>have</td>
-                        <td>VBP</td>
-                        <td>O</td>
-                    </tr>
-                    <tr>
-                        <td></td>
-                        <td>marched</td>
-                        <td>VBN</td>
-                        <td>O</td>
-                    </tr>
-                    <tr>
-                        <td></td>
-                        <td>through</td>
-                        <td>IN</td>
-                        <td>O</td>
-                    </tr>
-                    <tr>
-                        <td></td>
-                        <td>London</td>
-                        <td>NNP</td>
-                        <td>B-geo</td>
-                    </tr>
-                    <tr>
-                        <td></td>
-                        <td>to</td>
-                        <td>TO</td>
-                        <td>O</td>
-                    </tr>
-                </tbody>
-            </table>
+            <section id="dataset">
+                <h2>Dataset</h2>
+                <p>The dataset uses IOB format (Inside-Outside-Beginning) for entity tagging. Each token is labeled with its entity type.</p>
+                
+                <div class="entity-tags">
+                    <span class="tag tag-accent">geo</span>
+                    <span class="tag tag-accent">gpe</span>
+                    <span class="tag tag-accent">org</span>
+                    <span class="tag tag-accent">per</span>
+                    <span class="tag tag-accent">tim</span>
+                    <span class="tag tag-accent">art</span>
+                    <span class="tag tag-accent">eve</span>
+                    <span class="tag tag-accent">nat</span>
+                </div>
 
-            <p>Where:</p>
-            <ul>
-                <li><strong>Word</strong>: The token from the sentence</li>
-                <li><strong>POS</strong>: Part-of-speech tag</li>
-                <li><strong>Tag</strong>: The entity tag in IOB format (Inside-Outside-Beginning)
-                    <ul>
-                        <li><strong>B-</strong> prefix indicates the beginning of an entity</li>
-                        <li><strong>I-</strong> prefix indicates the continuation of an entity</li>
-                        <li><strong>O</strong> indicates tokens that are not part of any entity</li>
-                    </ul>
-                </li>
-            </ul>
-        </section>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Sentence</th>
+                            <th>Word</th>
+                            <th>POS</th>
+                            <th>Tag</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>1</td><td>Thousands</td><td>NNS</td><td>O</td></tr>
+                        <tr><td></td><td>of</td><td>IN</td><td>O</td></tr>
+                        <tr><td></td><td>demonstrators</td><td>NNS</td><td>O</td></tr>
+                        <tr><td></td><td>marched</td><td>VBN</td><td>O</td></tr>
+                        <tr><td></td><td>through</td><td>IN</td><td>O</td></tr>
+                        <tr><td></td><td>London</td><td>NNP</td><td class="highlight">B-geo</td></tr>
+                    </tbody>
+                </table>
 
-        <section id="ml-approach">
-            <h2>ML Approach</h2>
+                <h3>Tag Format</h3>
+                <ul>
+                    <li><code>B-</code> Beginning of an entity</li>
+                    <li><code>I-</code> Inside/continuation of an entity</li>
+                    <li><code>O</code> Outside any entity</li>
+                </ul>
+            </section>
 
-            <h3>Model Architecture</h3>
-            <p>We use the RoBERTa base model, which is an optimized version of BERT with improved training methodology. RoBERTa features:</p>
-            <ul>
-                <li>12 transformer layers</li>
-                <li>768 hidden dimensions</li>
-                <li>12 attention heads</li>
-                <li>125M parameters</li>
-            </ul>
-            <p>For NER, we add a token classification head on top of the RoBERTa encoder, which consists of a dropout layer followed by a linear layer mapping to the number of entity classes.</p>
+            <section id="architecture">
+                <h2>Architecture</h2>
+                
+                <div class="grid">
+                    <div class="card stat">
+                        <div class="stat-value">12</div>
+                        <div class="stat-label">Transformer Layers</div>
+                    </div>
+                    <div class="card stat">
+                        <div class="stat-value">768</div>
+                        <div class="stat-label">Hidden Dimensions</div>
+                    </div>
+                    <div class="card stat">
+                        <div class="stat-value">125M</div>
+                        <div class="stat-label">Parameters</div>
+                    </div>
+                </div>
 
-            <h3>Training Process</h3>
-            <p>The model is trained using:</p>
-            <ul>
-                <li>Cross-entropy loss function</li>
-                <li>AdamW optimizer with learning rate of 2e-5</li>
-                <li>Linear learning rate scheduler with warmup</li>
-                <li>Batch size of 16</li>
-                <li>Training runs for 5 epochs</li>
-                <li>Gradient accumulation steps of 2</li>
-                <li>Max sequence length of 128 tokens</li>
-            </ul>
+                <p>Built on RoBERTa-base with a linear classification head for token-level entity prediction. The model dynamically loads the hidden size from the pretrained configuration.</p>
 
-            <h3>Data Preprocessing</h3>
-            <ul>
-                <li>Sentences are tokenized using RoBERTa's tokenizer</li>
-                <li>Special handling for subword tokenization to maintain entity boundaries</li>
-                <li>Entity tags are converted to numerical indices using a mapping dictionary</li>
-                <li>Dataset is split into training (80%) and validation (20%) sets</li>
-            </ul>
+                <h3>Training Configuration</h3>
+                <div class="card">
+                    <pre style="margin: 0; padding: 0; background: transparent; border: none;">data:
+  path: './data/'
+  wandb: 'entity-extraction'
 
-            <h3>Evaluation Metrics</h3>
-            <p>We evaluate the model using:</p>
-            <ul>
-                <li><strong>Precision</strong>: Ratio of correctly predicted entities to all predicted entities
-                    <ul>
-                        <li>Formula: TP / (TP + FP)</li>
-                        <li>Measures the accuracy of positive predictions</li>
-                        <li>Higher precision means fewer false entity identifications</li>
-                    </ul>
-                </li>
-                <li><strong>Recall</strong>: Ratio of correctly predicted entities to all actual entities
-                    <ul>
-                        <li>Formula: TP / (TP + FN)</li>
-                        <li>Measures the model's ability to find all entities</li>
-                        <li>Higher recall means fewer missed entities</li>
-                    </ul>
-                </li>
-                <li><strong>F1 Score</strong>: Harmonic mean of precision and recall
-                    <ul>
-                        <li>Formula: 2 * (Precision * Recall) / (Precision + Recall)</li>
-                        <li>Balances the trade-off between precision and recall</li>
-                        <li>Critical for NER tasks where both false positives and false negatives are problematic</li>
-                    </ul>
-                </li>
-                <li><strong>Support</strong>: Number of occurrences of each entity type
-                    <ul>
-                        <li>Helps interpret metrics in light of class imbalance</li>
-                        <li>Low-support classes (like 'art' and 'eve' in our dataset) typically have less reliable metrics</li>
-                    </ul>
-                </li>
-            </ul>
+params:
+  device: 'cuda:0'
+  hfmodel: 'roberta-base'
+  bsize: 12
+  learning_rate: 1e-5
+  epochs: 2
 
-            <p>We report metrics at multiple levels:</p>
-            <ul>
-                <li><strong>Per-entity metrics</strong>: Performance on each entity type (art, geo, per, etc.)</li>
-                <li><strong>Micro average</strong>: Calculated by aggregating contributions of all classes
-                    <ul>
-                        <li>Favors performance on majority classes</li>
-                    </ul>
-                </li>
-                <li><strong>Macro average</strong>: Simple average of per-class metrics
-                    <ul>
-                        <li>Each class contributes equally regardless of support</li>
-                        <li>Lower macro vs. micro indicates poorer performance on minority classes</li>
-                    </ul>
-                </li>
-                <li><strong>Weighted average</strong>: Average weighted by the support of each class
-                    <ul>
-                        <li>Reflects overall performance while accounting for class frequency</li>
-                    </ul>
-                </li>
-            </ul>
+score:
+  model: 'model.pt-v1.ckpt'</pre>
+                </div>
 
-            <p>For NER specifically, we use a strict match evaluation - an entity prediction is considered correct only if both the entity type and its exact boundary (start and end positions) match the ground truth.</p>
-        </section>
+                <h3>Key Components</h3>
+                <ul>
+                    <li><strong>Loss:</strong> Cross-entropy with padding token masking</li>
+                    <li><strong>Optimizer:</strong> AdamW</li>
+                    <li><strong>Framework:</strong> PyTorch Lightning 2.0+</li>
+                    <li><strong>Logging:</strong> Weights & Biases</li>
+                </ul>
+            </section>
 
-        <section id="code-structure">
-            <h2>Code Structure</h2>
-            <pre><code>├── data                        # DATA FILES
-│   ├── data.csv                    # Raw Dataset from Kaggle 
-│   ├── train.csv                   # Training split from data.csv
-│   └── valid.csv                   # Validation split from data.csv
-│   ├── mapping.json                # Mapping of labels to index
-│   ├── score.csv                   # Model predictions on valid.csv
-│   ├── model                       # Finetuned Model
-│   │   └── model.pt-v1.ckpt
-│   ├── report.txt                  # Evaluation on valid.csv
+            <section id="structure">
+                <h2>Project Structure</h2>
+                <div class="card">
+                    <div class="structure-tree">
+<span class="folder">data/</span>
+    data.csv           <span class="comment"># Raw dataset from Kaggle</span>
+    train.csv          <span class="comment"># Training split</span>
+    valid.csv          <span class="comment"># Validation split</span>
+    mapping.json       <span class="comment"># Label → index mapping</span>
+    score.csv          <span class="comment"># Model predictions</span>
+    report.txt         <span class="comment"># Evaluation metrics</span>
+    <span class="folder">model/</span>
+        model.pt-v1.ckpt
 
-├── src                         # SOURCE CODE
-│   ├── data.py                     # Data Loaders
-│   ├── model.py                    # HuggingFace Model
-│   ├── score.py                    # Scoring Model
-│   └── train.py                    # Training Model
+<span class="folder">src/</span>
+    <span class="file">data.py</span>            <span class="comment"># NERDataset, NERDataModule</span>
+    <span class="file">model.py</span>           <span class="comment"># NERModel with dynamic config</span>
+    <span class="file">pipeline.py</span>        <span class="comment"># Data/Train/Eval pipelines</span>
+    <span class="file">score.py</span>           <span class="comment"># Model evaluation</span>
+    <span class="file">train.py</span>           <span class="comment"># NERLightningModule</span>
 
-├── main.py                     
-├── conf.yaml</code></pre>
-        </section>
+<span class="file">main.py</span>                <span class="comment"># Entry point</span>
+<span class="file">conf.yaml</span>              <span class="comment"># Configuration</span>
+<span class="file">requirements.txt</span>
+                    </div>
+                </div>
+            </section>
 
-        <section id="instructions">
-            <h2>Instructions</h2>
-            <p>Download the "data.csv" file from Kaggle and place it in data folder.</p>
-            <p>Command to split to preprocess data file and split it into training, validation:</p>
-            <div class="terminal">python main.py --mode prepare-data</div>
+            <section id="performance">
+                <h2>Performance</h2>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Entity</th>
+                            <th>Precision</th>
+                            <th>Recall</th>
+                            <th>F1</th>
+                            <th>Support</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>geo</td><td>0.86</td><td>0.88</td><td class="highlight">0.87</td><td>12,744</td></tr>
+                        <tr><td>gpe</td><td>0.94</td><td>0.95</td><td class="highlight">0.95</td><td>5,020</td></tr>
+                        <tr><td>org</td><td>0.70</td><td>0.70</td><td>0.70</td><td>6,655</td></tr>
+                        <tr><td>per</td><td>0.76</td><td>0.81</td><td>0.78</td><td>5,195</td></tr>
+                        <tr><td>tim</td><td>0.83</td><td>0.82</td><td>0.82</td><td>3,942</td></tr>
+                        <tr><td>art</td><td>0.38</td><td>0.06</td><td>0.10</td><td>161</td></tr>
+                        <tr><td>eve</td><td>0.22</td><td>0.23</td><td>0.23</td><td>61</td></tr>
+                        <tr><td>nat</td><td>0.35</td><td>0.44</td><td>0.39</td><td>73</td></tr>
+                    </tbody>
+                </table>
 
-            <p>Command to finetune the model:</p>
-            <div class="terminal">python main.py --mode train-model</div>
+                <div class="grid">
+                    <div class="card stat">
+                        <div class="stat-value">0.82</div>
+                        <div class="stat-label">Micro F1</div>
+                    </div>
+                    <div class="card stat">
+                        <div class="stat-value">0.60</div>
+                        <div class="stat-label">Macro F1</div>
+                    </div>
+                    <div class="card stat">
+                        <div class="stat-value">33.8K</div>
+                        <div class="stat-label">Total Entities</div>
+                    </div>
+                </div>
 
-            <p>Command to evaluate the model:</p>
-            <div class="terminal">python main.py --mode score-model</div>
-        </section>
+                <h3>Observations</h3>
+                <ul>
+                    <li>High-frequency entities (geo, gpe, per) achieve F1 > 0.78</li>
+                    <li>Low-frequency entities (art, eve, nat) need data augmentation</li>
+                    <li>Gap between micro/macro F1 indicates class imbalance impact</li>
+                </ul>
 
-        <section id="performance">
-            <h2>Performance</h2>
-            <p>The final model performance is saved in report.txt file. It looks like:</p>
-            <table>
-                <thead>
-                    <tr>
-                        <th>label</th>
-                        <th>precision</th>
-                        <th>recall</th>
-                        <th>f1-score</th>
-                        <th>support</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>art</td>
-                        <td>0.38</td>
-                        <td>0.06</td>
-                        <td>0.10</td>
-                        <td>161</td>
-                    </tr>
-                    <tr>
-                        <td>eve</td>
-                        <td>0.22</td>
-                        <td>0.23</td>
-                        <td>0.23</td>
-                        <td>61</td>
-                    </tr>
-                    <tr>
-                        <td>geo</td>
-                        <td>0.86</td>
-                        <td>0.88</td>
-                        <td>0.87</td>
-                        <td>12744</td>
-                    </tr>
-                    <tr>
-                        <td>gpe</td>
-                        <td>0.94</td>
-                        <td>0.95</td>
-                        <td>0.95</td>
-                        <td>5020</td>
-                    </tr>
-                    <tr>
-                        <td>nat</td>
-                        <td>0.35</td>
-                        <td>0.44</td>
-                        <td>0.39</td>
-                        <td>73</td>
-                    </tr>
-                    <tr>
-                        <td>org</td>
-                        <td>0.70</td>
-                        <td>0.70</td>
-                        <td>0.70</td>
-                        <td>6655</td>
-                    </tr>
-                    <tr>
-                        <td>per</td>
-                        <td>0.76</td>
-                        <td>0.81</td>
-                        <td>0.78</td>
-                        <td>5195</td>
-                    </tr>
-                    <tr>
-                        <td>tim</td>
-                        <td>0.83</td>
-                        <td>0.82</td>
-                        <td>0.82</td>
-                        <td>3942</td>
-                    </tr>
-                    <tr>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td>micro avg</td>
-                        <td>0.82</td>
-                        <td>0.83</td>
-                        <td>0.82</td>
-                        <td>33851</td>
-                    </tr>
-                    <tr>
-                        <td>macro avg</td>
-                        <td>0.63</td>
-                        <td>0.61</td>
-                        <td>0.60</td>
-                        <td>33851</td>
-                    </tr>
-                    <tr>
-                        <td>weighted avg</td>
-                        <td>0.82</td>
-                        <td>0.83</td>
-                        <td>0.82</td>
-                        <td>33851</td>
-                    </tr>
-                </tbody>
-            </table>
+                <h3>Training Logs</h3>
+                <img src="data/log.png" alt="Training metrics from Weights & Biases">
+            </section>
+        </div>
+    </main>
 
-            <h4>Performance Analysis</h4>
-            <p>The performance metrics reveal several important insights:</p>
-            <ol>
-                <li><strong>Class imbalance impact</strong>:
-                    <ul>
-                        <li>High-support classes (geo: 12,744, org: 6,655, per: 5,195) achieve F1 scores of 0.87, 0.70, and 0.78 respectively</li>
-                        <li>Low-support classes (art: 161, eve: 61, nat: 73) achieve much lower F1 scores of 0.10, 0.23, and 0.39</li>
-                    </ul>
-                </li>
-                <li><strong>Precision-recall balance</strong>:
-                    <ul>
-                        <li>For most entity types, precision and recall are fairly balanced</li>
-                        <li>Exception is 'art' entities where precision (0.38) significantly exceeds recall (0.06), indicating the model is conservative in predicting this class</li>
-                    </ul>
-                </li>
-                <li><strong>Overall performance</strong>:
-                    <ul>
-                        <li>Micro-average F1 of 0.82 indicates strong general performance</li>
-                        <li>Gap between micro-average (0.82) and macro-average (0.60) F1 scores confirms the model performs substantially better on common entity types</li>
-                    </ul>
-                </li>
-                <li><strong>Areas for improvement</strong>:
-                    <ul>
-                        <li>Targeted strategies for low-resource classes:
-                            <ul>
-                                <li>Data augmentation for minority classes</li>
-                                <li>Class weighting in loss function</li>
-                                <li>Few-shot or meta-learning approaches</li>
-                            </ul>
-                        </li>
-                        <li>Entity boundary detection could be improved for complex entities</li>
-                    </ul>
-                </li>
-            </ol>
-
-            <p>The weighted average metrics closely match the micro-average, confirming that performance is dominated by high-frequency classes.</p>
-
-            <h3>Training Progress</h3>
-            <p>The wandb logs are below:</p>
-            <img src="data/log.png" alt="Training logs from Weights & Biases showing model performance">
-        </section>
-
-        <footer class="mt-5 text-center">
-            <p>Named-Entity Recognition with RoBERTa | <a href="https://github.com/brightertiger/entity-extraction" target="_blank">GitHub Repository</a></p>
-            <p>&copy; 2023 <a href="https://github.com/brightertiger" target="_blank">brightertiger</a></p>
-        </footer>
-    </div>
+    <footer>
+        <div class="container">
+            <p>Built with PyTorch Lightning • <a href="https://github.com/brightertiger/entity-extraction" target="_blank">GitHub</a></p>
+        </div>
+    </footer>
 </body>
-</html> 
+</html>

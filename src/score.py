@@ -1,78 +1,57 @@
-import torch
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
-from seqeval.metrics import accuracy_score
+import torch
 from seqeval.metrics import classification_report
-from seqeval.metrics import f1_score
+from tqdm import tqdm
 
-def score_model(model, data, device, bsize, tokenizer, mapping):
-    """
-    Score the model on validation data
-    
-    Args:
-        model: The NER model
-        data: DataLoader with validation data
-        device: Device to run inference on
-        bsize: Batch size
-        tokenizer: Tokenizer for decoding tokens
-        mapping: Mapping from IDs to entity tags
-        
-    Returns:
-        output: DataFrame with predictions
-        report: Classification report
-    """
+
+def evaluate_model(model, dataloader, device, batch_size, tokenizer, mapping):
     model = model.to(device)
     model.eval()
-    scores = []
-    tokens = []
-    labels = []
     
-    # Create reverse mapping for decoding
-    rev_mapping = {v: k for k, v in mapping.items()}
+    all_predictions = []
+    all_tokens = []
+    all_labels = []
     
-    with tqdm(total=len(data) * bsize, desc="Scoring") as tq:
-        with torch.no_grad():
-            for sample in data:
-                label = sample.pop('labels').long().to(device)
-                words = sample.pop('words').long().to(device)
-                attns = sample.pop('attns').long().to(device)
-                
-                preds = model(words, attns)
-                preds = torch.softmax(preds, dim=-1)
-                
-                scores.append(preds.cpu().data.numpy())
-                tokens.append(words.cpu().data.numpy())
-                labels.append(label.cpu().data.numpy())
-                
-                tq.update(bsize)
+    reverse_mapping = {v: k for k, v in mapping.items()}
     
-    # Process results
-    scores = np.vstack(scores).argmax(axis=-1).reshape(-1)
-    tokens = np.vstack(tokens).reshape(-1)
-    labels = np.vstack(labels).reshape(-1)
+    with torch.no_grad():
+        for batch in tqdm(dataloader, desc='Evaluating'):
+            labels = batch['labels'].long().to(device)
+            input_ids = batch['input_ids'].long().to(device)
+            attention_mask = batch['attention_mask'].long().to(device)
+            
+            logits = model(input_ids, attention_mask)
+            predictions = torch.softmax(logits, dim=-1)
+            
+            all_predictions.append(predictions.cpu().numpy())
+            all_tokens.append(input_ids.cpu().numpy())
+            all_labels.append(labels.cpu().numpy())
     
-    output = pd.DataFrame(np.vstack([tokens, labels, scores])).T
-    output.columns = ['word', 'label', 'score']
+    predictions = np.vstack(all_predictions).argmax(axis=-1).reshape(-1)
+    tokens = np.vstack(all_tokens).reshape(-1)
+    labels = np.vstack(all_labels).reshape(-1)
     
-    # Add index column to group by sentences
-    index = list(range(len(data) * bsize))
-    index = np.repeat(np.array(index), 256, -1)  # 256 is max_len
-    output.insert(0, 'index', index)
+    output = pd.DataFrame({
+        'word': tokens,
+        'label': labels,
+        'prediction': predictions
+    })
     
-    # Filter out padding tokens (-100)
+    max_len = 256
+    num_samples = len(dataloader) * batch_size
+    sentence_indices = np.repeat(np.arange(num_samples), max_len)
+    output.insert(0, 'index', sentence_indices)
+    
     output = output[output['label'] != -100].copy().reset_index(drop=True)
     
-    # Map numeric values back to entity tags
-    output['label'] = output['label'].map(lambda x: rev_mapping[x])
-    output['score'] = output['score'].map(lambda x: rev_mapping[x])
-    
-    # Decode token IDs to text
+    output['label'] = output['label'].map(reverse_mapping)
+    output['prediction'] = output['prediction'].map(reverse_mapping)
     output['word'] = tokenizer.convert_ids_to_tokens(output['word'].tolist())
     
-    # Prepare for seqeval evaluation
-    labels = output.groupby('index')['label'].apply(list).tolist()
-    score = output.groupby('index')['score'].apply(list).tolist()
-    report = classification_report(labels, score)
+    grouped_labels = output.groupby('index')['label'].apply(list).tolist()
+    grouped_predictions = output.groupby('index')['prediction'].apply(list).tolist()
+    
+    report = classification_report(grouped_labels, grouped_predictions)
     
     return output, report

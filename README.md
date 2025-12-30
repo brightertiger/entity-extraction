@@ -1,184 +1,113 @@
 # Entity Extraction
 
-## Overview
+Named Entity Recognition (NER) using fine-tuned RoBERTa models. The dataset is from [Kaggle NER Dataset](https://www.kaggle.com/datasets/namanj27/ner-dataset).
 
-This repository contains code for Named-Entity Recognition (NER) using finetuned RoBERTa models. The dataset has been borrowed from [Kaggle](https://www.kaggle.com/datasets/namanj27/ner-dataset). The objective is to accurately predict entity tags for words in sentences, distinguishing between different entity types such as people (per), organizations (org), locations (geo), and more.
+## Quick Start
 
-## Dataset Structure
+```bash
+# Install dependencies
+pip install -r requirements.txt
 
-The input dataset has the following structure:
-
-|Sentence # |Word         |POS|Tag  |
-|-----------|-------------|---|-----|
-|Sentence: 1|Thousands    |NNS|O    |
-|           |of           |IN |O    |
-|           |demonstrators|NNS|O    |
-|           |have         |VBP|O    |
-|           |marched      |VBN|O    |
-|           |through      |IN |O    |
-|           |London       |NNP|B-geo|
-|           |to           |TO |O    |
-
-Where:
-- **Word**: The token from the sentence
-- **POS**: Part-of-speech tag
-- **Tag**: The entity tag in IOB format (Inside-Outside-Beginning)
-  - **B-** prefix indicates the beginning of an entity
-  - **I-** prefix indicates the continuation of an entity
-  - **O** indicates tokens that are not part of any entity
-
-## ML Approach
-
-### Model Architecture
-We use the RoBERTa base model, which is an optimized version of BERT with improved training methodology. RoBERTa features:
-- 12 transformer layers
-- 768 hidden dimensions
-- 12 attention heads
-- 125M parameters
-
-For NER, we add a token classification head on top of the RoBERTa encoder, which consists of a dropout layer followed by a linear layer mapping to the number of entity classes.
-
-### Training Process
-The model is trained using:
-- Cross-entropy loss function
-- AdamW optimizer with learning rate of 2e-5
-- Linear learning rate scheduler with warmup
-- Batch size of 16
-- Training runs for 5 epochs
-- Gradient accumulation steps of 2
-- Max sequence length of 128 tokens
-
-### Data Preprocessing
-- Sentences are tokenized using RoBERTa's tokenizer
-- Special handling for subword tokenization to maintain entity boundaries
-- Entity tags are converted to numerical indices using a mapping dictionary
-- Dataset is split into training (80%) and validation (20%) sets
-
-### Evaluation Metrics
-We evaluate the model using:
-- **Precision**: Ratio of correctly predicted entities to all predicted entities
-  - Formula: TP / (TP + FP)
-  - Measures the accuracy of positive predictions
-  - Higher precision means fewer false entity identifications
-  
-- **Recall**: Ratio of correctly predicted entities to all actual entities
-  - Formula: TP / (TP + FN)
-  - Measures the model's ability to find all entities
-  - Higher recall means fewer missed entities
-  
-- **F1 Score**: Harmonic mean of precision and recall
-  - Formula: 2 * (Precision * Recall) / (Precision + Recall)
-  - Balances the trade-off between precision and recall
-  - Critical for NER tasks where both false positives and false negatives are problematic
-  
-- **Support**: Number of occurrences of each entity type
-  - Helps interpret metrics in light of class imbalance
-  - Low-support classes (like 'art' and 'eve' in our dataset) typically have less reliable metrics
-
-We report metrics at multiple levels:
-- **Per-entity metrics**: Performance on each entity type (art, geo, per, etc.)
-- **Micro average**: Calculated by aggregating contributions of all classes
-  - Favors performance on majority classes
-- **Macro average**: Simple average of per-class metrics
-  - Each class contributes equally regardless of support
-  - Lower macro vs. micro indicates poorer performance on minority classes
-- **Weighted average**: Average weighted by the support of each class
-  - Reflects overall performance while accounting for class frequency
-
-For NER specifically, we use a strict match evaluation - an entity prediction is considered correct only if both the entity type and its exact boundary (start and end positions) match the ground truth.
-
-## Code Structure
-
-```
-├── data                        # DATA FILES
-│   ├── data.csv                    # Raw Dataset from Kaggle 
-│   ├── train.csv                   # Training split from data.csv
-│   └── valid.csv                   # Validation split from data.csv
-│   ├── mapping.json                # Mapping of labels to index
-│   ├── score.csv                   # Model predictions on valid.csv
-│   ├── model                       # Finetuned Model
-│   │   └── model.pt-v1.ckpt
-│   ├── report.txt                  # Evaluation on valid.csv
-
-├── source                      # SOURCE CODE
-│   ├── data.py                     # Data Loaders
-│   ├── model.py                    # HuggingFace Model
-│   ├── score.py                    # Scoring Model
-│   └── train.py                    # Training Model
-
-├── main.py                     
-├── conf.yaml                   
-
-```
-
-### Instructions
-
-- Download the "data.csv" file from Kaggle and place it in data folder. 
-
-- Command to split to preprocess data file and split it into training, validation
-
-```shell
+# Prepare data (place data.csv from Kaggle in data/ folder first)
 python main.py --mode prepare-data
-```
 
-- Command to finetune the model
-
-```shell
+# Train model
 python main.py --mode train-model
-```
 
-- Command to evaluate the model
-```shell
+# Evaluate model
 python main.py --mode score-model
 ```
 
+## Dataset Structure
 
-### Performance
+| Sentence # | Word | POS | Tag |
+|------------|------|-----|-----|
+| Sentence: 1 | Thousands | NNS | O |
+| | of | IN | O |
+| | demonstrators | NNS | O |
+| | London | NNP | B-geo |
 
-The final model performance is saved in report.txt file. It looks like:
+**Tag Format (IOB):**
+- `B-` prefix: Beginning of an entity
+- `I-` prefix: Inside/continuation of an entity
+- `O`: Outside any entity
 
-|label |precision| recall |f1-score|support|
-|------|---------|--------|--------|------ |
-|art          |0.38  |0.06    |0.10   |161    |      
-|eve          |0.22  |0.23    |0.23   |61     |      
-|geo          |0.86  |0.88    |0.87   |12744  |      
-|gpe          |0.94  |0.95    |0.95   |5020   |      
-|nat          |0.35  |0.44    |0.39   |73     |      
-|org          |0.70  |0.70    |0.70   |6655   |      
-|per          |0.76  |0.81    |0.78   |5195   |      
-|tim          |0.83  |0.82    |0.82   |3942   |
-|             |      |        |       |       |
-|micro avg    |0.82  |0.83    |0.82   |33851  |
-|macro avg    |0.63    |0.61   |0.60  |33851  |
-|weighted avg |0.82  |0.83    |0.82   |33851  |  
+**Entity Types:** geo (geographical), gpe (geopolitical), org (organization), per (person), tim (time), art (artifact), eve (event), nat (natural phenomenon)
 
-#### Performance Analysis
+## Model Architecture
 
-The performance metrics reveal several important insights:
+- **Base Model:** RoBERTa-base (12 layers, 768 hidden, 125M parameters)
+- **Classification Head:** Linear layer mapping to entity classes
+- **Loss:** Cross-entropy
+- **Optimizer:** AdamW
 
-1. **Class imbalance impact**: 
-   - High-support classes (geo: 12,744, org: 6,655, per: 5,195) achieve F1 scores of 0.87, 0.70, and 0.78 respectively
-   - Low-support classes (art: 161, eve: 61, nat: 73) achieve much lower F1 scores of 0.10, 0.23, and 0.39
+## Configuration
 
-2. **Precision-recall balance**:
-   - For most entity types, precision and recall are fairly balanced
-   - Exception is 'art' entities where precision (0.38) significantly exceeds recall (0.06), indicating the model is conservative in predicting this class
+Edit `conf.yaml` to modify:
 
-3. **Overall performance**:
-   - Micro-average F1 of 0.82 indicates strong general performance
-   - Gap between micro-average (0.82) and macro-average (0.60) F1 scores confirms the model performs substantially better on common entity types
+```yaml
+data:
+  path: './data/'
+  wandb: 'entity-extraction'
 
-4. **Areas for improvement**:
-   - Targeted strategies for low-resource classes:
-     - Data augmentation for minority classes
-     - Class weighting in loss function
-     - Few-shot or meta-learning approaches
-   - Entity boundary detection could be improved for complex entities
+params:
+  device: 'cuda:0'
+  hfmodel: 'roberta-base'
+  bsize: 12
+  learning_rate: 1e-5
+  epochs: 2
 
-The weighted average metrics closely match the micro-average, confirming that performance is dominated by high-frequency classes.
+score:
+  model: 'model.pt-v1.ckpt'
+```
 
-The wandb logs are below:
+## Project Structure
 
-![img](data/log.png)
+```
+├── data/
+│   ├── data.csv          # Raw dataset (download from Kaggle)
+│   ├── train.csv         # Training split
+│   ├── valid.csv         # Validation split
+│   ├── mapping.json      # Label to index mapping
+│   ├── score.csv         # Model predictions
+│   ├── report.txt        # Evaluation metrics
+│   └── model/
+│       └── model.pt-v1.ckpt
+├── src/
+│   ├── data.py           # Dataset and DataModule
+│   ├── model.py          # NER model
+│   ├── pipeline.py       # Training/evaluation pipelines
+│   ├── score.py          # Model evaluation
+│   └── train.py          # Lightning training module
+├── main.py               # Entry point
+├── conf.yaml             # Configuration
+└── requirements.txt
+```
 
+## Performance
 
+| Entity | Precision | Recall | F1 | Support |
+|--------|-----------|--------|-----|---------|
+| art | 0.38 | 0.06 | 0.10 | 161 |
+| eve | 0.22 | 0.23 | 0.23 | 61 |
+| geo | 0.86 | 0.88 | 0.87 | 12744 |
+| gpe | 0.94 | 0.95 | 0.95 | 5020 |
+| nat | 0.35 | 0.44 | 0.39 | 73 |
+| org | 0.70 | 0.70 | 0.70 | 6655 |
+| per | 0.76 | 0.81 | 0.78 | 5195 |
+| tim | 0.83 | 0.82 | 0.82 | 3942 |
+| **micro avg** | 0.82 | 0.83 | 0.82 | 33851 |
+| **macro avg** | 0.63 | 0.61 | 0.60 | 33851 |
+
+**Key Observations:**
+- High-frequency entities (geo, gpe, per) achieve F1 > 0.78
+- Low-frequency entities (art, eve, nat) need improvement
+- Overall micro-F1 of 0.82 indicates strong general performance
+
+![Training Logs](data/log.png)
+
+## Requirements
+
+- Python 3.9+
+- PyTorch 2.0+
+- CUDA (optional, for GPU training)

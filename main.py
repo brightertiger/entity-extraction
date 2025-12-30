@@ -1,19 +1,25 @@
 import argparse
+from pathlib import Path
+
 from omegaconf import OmegaConf
+
 from src.pipeline import get_pipeline
 
-# Load configuration
-CONFIG = OmegaConf.load('./conf.yaml')
 
-# Parse command line arguments
-parser = argparse.ArgumentParser()
-choices = ['prepare-data', 'train-model', 'score-model']
-parser.add_argument('-m', '--mode', dest='mode', choices=choices, help="Run Mode")
-args = parser.parse_args()
+def main():
+    config = OmegaConf.load(Path(__file__).parent / 'conf.yaml')
+    
+    parser = argparse.ArgumentParser(description='Entity Extraction Pipeline')
+    choices = ['prepare-data', 'train-model', 'score-model']
+    parser.add_argument('-m', '--mode', dest='mode', choices=choices, required=False, help='Run mode')
+    args = parser.parse_args()
 
-# Run the appropriate pipeline
-if args.mode:
-    pipeline = get_pipeline(CONFIG, args.mode)
-    pipeline.run()
-else:
-    parser.print_help()
+    if args.mode:
+        pipeline = get_pipeline(config, args.mode)
+        pipeline.run()
+    else:
+        parser.print_help()
+
+
+if __name__ == '__main__':
+    main()

@@ -1,25 +1,16 @@
-import torch
-import torch.nn as nn 
-from transformers import AutoModel
+import torch.nn as nn
+from transformers import AutoModel, AutoConfig
 
-class Model(nn.Module):
-    """NER model using pretrained transformer with linear classification head"""
 
-    def __init__(self, hfmodel, tags):
+class NERModel(nn.Module):
+    def __init__(self, model_name, num_labels):
         super().__init__()
-        self.model = AutoModel.from_pretrained(hfmodel)
-        self.head = nn.Linear(768, tags)
+        self.config = AutoConfig.from_pretrained(model_name)
+        self.encoder = AutoModel.from_pretrained(model_name)
+        self.classifier = nn.Linear(self.config.hidden_size, num_labels)
     
-    def forward(self, inputs, mask):
-        """
-        Args:
-            inputs: Token ids (batch_size, seq_len)
-            mask: Attention mask (batch_size, seq_len)
-            
-        Returns:
-            output: Classification logits (batch_size, seq_len, num_tags)
-        """
-        embed = self.model(input_ids=inputs, attention_mask=mask)
-        embed = embed['last_hidden_state']
-        output = self.head(embed)
-        return output
+    def forward(self, input_ids, attention_mask):
+        outputs = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
+        sequence_output = outputs.last_hidden_state
+        logits = self.classifier(sequence_output)
+        return logits
